@@ -13,36 +13,34 @@ from app.platforms.base import (
 
 class MercariAdapter:
     """
-    煤炉（Mercari / メルカリ）独立适配器。
+    煤炉（Mercari）平台适配器：保留统一平台接口，商品数据改由可插拔 DataSource 提供。
 
-    接入核查结论：
-    - 非官方 search API（api.mercari.jp）当前返回 401，需客户端鉴权
-    - 公开搜索页受 Cloudflare 等访问保护
-    - 本项目不绕过登录、验证码、Cloudflare 或其他访问控制，也不要求用户提供煤炉账号密码
-
-    因此本版本明确标记为「未接入」。保留 parse_item / make_external_id，
-    待出现官方开放 API 或允许的合作数据源后再实现 search()。
+    当前无可用官方 C2C 搜索数据源；平台层 status=unavailable，界面应明确不能监控。
     """
 
     code = "mercari"
 
     def capability(self) -> PlatformCapability:
+        from app.datasources import list_datasources_for_platform
+
+        sources = list_datasources_for_platform(self.code)
+        source_lines = [f"{s.id}: {s.status.value} — {s.summary}" for s in sources]
         return PlatformCapability(
             code=self.code,
             name="Mercari",
             name_ja="メルカリ（煤炉）",
             status="unavailable",
-            data_source="暂无允许稳定使用的公开数据源",
+            data_source="可插拔数据源（官方 API / 邮件提醒 / 用户提供）；当前均未形成可监控链路",
             capabilities=[],
             limitations=[
-                "未接入：非官方 API 返回 401；公开网页受 Cloudflare 保护",
-                "不会绕过登录、验证码、Cloudflare 或其他访问控制",
-                "不会使用演示数据冒充真实商品",
+                "当前不能监控真实煤炉商品：没有已启用的可用数据源",
+                "不会绕过 401、Cloudflare、登录或验证码",
+                "不会使用演示数据冒充真实结果",
+                *source_lines,
             ],
             config_notes=(
-                "后续接入条件：官方开放搜索 API，或平台明确允许的合作数据源；"
-                "届时在本文件实现 search()，复用 parse_item()/make_external_id()，"
-                "并将 status 更新为 supported/partial。"
+                "请查看 /api/datasources 了解各数据源调研结论与接入条件。"
+                "监控任务/去重/通知管道已就绪，待数据源 available 后即可生效。"
             ),
         )
 
@@ -56,30 +54,6 @@ class MercariAdapter:
             price_f = float(price) if price is not None else None
         except (TypeError, ValueError):
             price_f = None
-
-        thumb = None
-        thumbs = raw.get("thumbnails") or raw.get("photos") or []
-        if isinstance(thumbs, list) and thumbs:
-            first = thumbs[0]
-            thumb = first if isinstance(first, str) else (first or {}).get("url")
-        elif isinstance(raw.get("thumbnail"), str):
-            thumb = raw["thumbnail"]
-
-        seller = None
-        seller_obj = raw.get("seller") or raw.get("shop") or {}
-        if isinstance(seller_obj, dict):
-            seller = seller_obj.get("name") or seller_obj.get("shopName")
-        elif isinstance(seller_obj, str):
-            seller = seller_obj
-
-        created = raw.get("created") or raw.get("updated")
-        published_at = None
-        if created:
-            try:
-                published_at = datetime.fromtimestamp(int(created), tz=timezone.utc)
-            except (TypeError, ValueError, OSError):
-                published_at = None
-
         return ProductItem(
             platform=self.code,
             external_id=item_id,
@@ -87,16 +61,21 @@ class MercariAdapter:
             url=f"https://jp.mercari.com/item/{item_id}" if item_id else "https://jp.mercari.com/",
             price=price_f,
             currency="JPY",
-            image_url=thumb,
-            seller=seller,
-            published_at=published_at,
+            image_url=(raw.get("thumbnails") or [None])[0]
+            if isinstance(raw.get("thumbnails"), list)
+            else raw.get("image_url"),
+            seller=(raw.get("seller") or {}).get("name")
+            if isinstance(raw.get("seller"), dict)
+            else raw.get("seller"),
+            published_at=None,
             raw=raw,
         )
 
     async def search(self, query: SearchQuery) -> SearchResult:
         raise NotImplementedError(
-            "煤炉（Mercari）尚未接入：暂无允许稳定使用的公开数据源"
-            "（非官方 API 401 / 公开页受访问保护）。"
-            "不会伪造抓取结果。后续需官方或允许的合作接口后再启用。"
-            f"关键词={query.keywords}"
+            "煤炉平台适配器本身不直接抓取。请通过数据源（官方 API / 邮件 / 用户提供）获取商品。"
+            "当前无 available 的煤炉搜索数据源，不能监控。"
         )
+
+
+_ = (datetime, timezone)

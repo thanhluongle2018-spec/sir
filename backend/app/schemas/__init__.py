@@ -212,11 +212,28 @@ class PlatformInfo(BaseModel):
     code: str
     name: str
     name_ja: str
-    status: str  # supported | partial | stub
+    status: str  # supported | partial | unavailable | stub
     data_source: str
     capabilities: list[str]
     limitations: list[str]
     config_notes: str
+    can_monitor: bool = False
+    status_label: str = "未接入"
+
+
+class DataSourceOut(BaseModel):
+    id: str
+    platform: str
+    kind: str
+    name: str
+    name_zh: str
+    status: str  # available | unavailable | pending_confirmation | disabled
+    summary: str
+    research_notes: list[str] = Field(default_factory=list)
+    requirements: list[str] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
+    references: list[str] = Field(default_factory=list)
+    status_label: str = ""
 
 
 class DashboardStats(BaseModel):

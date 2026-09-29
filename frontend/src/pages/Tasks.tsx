@@ -128,8 +128,7 @@ export default function Tasks() {
   return (
     <div>
       <h1 className="page-title">监控任务</h1>
-      <p className="page-desc">针对煤炉与骏合屋创建关键词监控。服务端调度运行；平台未接入时会明确跳过，不会伪造商品。
-      </p>
+      <p className="page-desc">任务、匹配、去重与通知已可用。煤炉 / 骏合屋数据源尚未接入：立即检查不会发现真实商品，界面会标明「未接入 / 当前不能监控」。</p>
       {error && <div className="error-box">{error}</div>}
       {msg && <div className="panel" style={{ color: "var(--ok)" }}>{msg}</div>}
 
@@ -262,7 +261,7 @@ export default function Tasks() {
                       }`}
                     >
                       {p.status === "unavailable" || p.status === "stub"
-                        ? "未接入"
+                        ? "当前不能监控"
                         : p.status === "partial"
                           ? "部分接入"
                           : p.status === "supported"

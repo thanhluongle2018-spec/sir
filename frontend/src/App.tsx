@@ -21,7 +21,7 @@ export default function App() {
           <NavLink to="/tasks">监控任务</NavLink>
           <NavLink to="/items">商品</NavLink>
           <NavLink to="/channels">通知渠道</NavLink>
-          <NavLink to="/platforms">平台接入</NavLink>
+          <NavLink to="/platforms">平台与数据源</NavLink>
           <NavLink to="/logs">运行日志</NavLink>
         </nav>
       </aside>

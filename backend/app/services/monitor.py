@@ -21,9 +21,14 @@ from app.models import (
     RunLog,
     TaskStatus,
 )
+from app.datasources import (
+    default_source_ids_for_platform,
+    get_datasource,
+)
+from app.datasources.base import DataSourceKind, DataSourceStatus
 from app.notifications import send_notification
 from app.notifications.base import NotifyPayload
-from app.platforms import get_adapter, is_mvp_platform
+from app.platforms import is_mvp_platform
 from app.platforms.base import ProductItem, SearchQuery
 from app.services.crypto import decrypt_credentials
 
@@ -116,13 +121,32 @@ async def run_task_once(db: Session, task: MonitorTask) -> dict:
                 message=msg,
             )
             continue
-        try:
-            adapter = get_adapter(platform_code)
-            cap = adapter.capability()
-            if cap.status in ("stub", "unavailable"):
+
+        source_ids = default_source_ids_for_platform(platform_code)
+        pullable_available = 0
+        for source_id in source_ids:
+            try:
+                ds = get_datasource(source_id)
+            except KeyError:
+                continue
+            cap = ds.capability()
+            if cap.platform not in (platform_code, "multi"):
+                continue
+            if cap.kind == DataSourceKind.user_provided:
+                write_run_log(
+                    db,
+                    task_id=task.id,
+                    platform=platform_code,
+                    level="info",
+                    message=(
+                        f"数据源 {source_id} 为用户推送入库模式，调度拉取已跳过。"
+                        "请使用 POST /api/ingest（需 INGEST_API_TOKEN）。"
+                    ),
+                )
+                continue
+            if cap.status != DataSourceStatus.available:
                 msg = (
-                    f"平台 {cap.name_ja}（{platform_code}）尚未接入，已跳过搜索。"
-                    f"原因：{cap.data_source}"
+                    f"数据源 {source_id} 当前不可用（{cap.status.value}）：{cap.summary}"
                 )
                 errors.append(msg)
                 write_run_log(
@@ -131,55 +155,82 @@ async def run_task_once(db: Session, task: MonitorTask) -> dict:
                     platform=platform_code,
                     level="warning",
                     message=msg,
-                    detail={"status": cap.status, "limitations": cap.limitations},
+                    detail={
+                        "source_id": source_id,
+                        "status": cap.status.value,
+                        "research_notes": cap.research_notes,
+                    },
                 )
                 continue
 
-            async for attempt in AsyncRetrying(
-                stop=stop_after_attempt(settings.retry_max_attempts),
-                wait=wait_exponential(
-                    multiplier=settings.retry_base_seconds, min=1, max=30
-                ),
-                retry=retry_if_exception_type(Exception),
-                reraise=True,
-            ):
-                with attempt:
-                    result = await adapter.search(query)
+            pullable_available += 1
+            try:
+                async for attempt in AsyncRetrying(
+                    stop=stop_after_attempt(settings.retry_max_attempts),
+                    wait=wait_exponential(
+                        multiplier=settings.retry_base_seconds, min=1, max=30
+                    ),
+                    retry=retry_if_exception_type(Exception),
+                    reraise=True,
+                ):
+                    with attempt:
+                        result = await ds.fetch(query)
 
-            for product in result.items:
-                created = upsert_item_and_discovery(db, task, product)
-                if created:
-                    new_items += 1
-                    await notify_for_discovery(db, task, product)
+                for product in result.items:
+                    if product.platform != platform_code:
+                        continue
+                    created = upsert_item_and_discovery(db, task, product)
+                    if created:
+                        new_items += 1
+                        await notify_for_discovery(db, task, product)
 
-            write_run_log(
-                db,
-                task_id=task.id,
-                platform=platform_code,
-                level="info",
-                message=f"检查完成，返回 {len(result.items)} 条，新增 {new_items} 条（累计）",
-                detail={"returned": len(result.items)},
+                write_run_log(
+                    db,
+                    task_id=task.id,
+                    platform=platform_code,
+                    level="info",
+                    message=(
+                        f"数据源 {source_id} 检查完成，返回 {len(result.items)} 条"
+                    ),
+                    detail={"source_id": source_id, "returned": len(result.items)},
+                )
+            except NotImplementedError as exc:
+                errors.append(str(exc))
+                write_run_log(
+                    db,
+                    task_id=task.id,
+                    platform=platform_code,
+                    level="warning",
+                    message=str(exc),
+                    detail={"source_id": source_id},
+                )
+            except Exception as exc:  # noqa: BLE001
+                err = f"{platform_code}/{source_id}: {exc}"
+                errors.append(err)
+                write_run_log(
+                    db,
+                    task_id=task.id,
+                    platform=platform_code,
+                    level="error",
+                    message=err,
+                    detail={"source_id": source_id},
+                )
+                logger.exception("datasource fetch failed: %s", source_id)
+
+        if pullable_available == 0:
+            msg = (
+                f"平台 {platform_code} 当前没有可调度拉取的可用数据源，"
+                "无法发现真实商品（监控管道正常，数据源未接入）。"
             )
-        except NotImplementedError as exc:
-            errors.append(str(exc))
+            if msg not in errors:
+                errors.append(msg)
             write_run_log(
                 db,
                 task_id=task.id,
                 platform=platform_code,
                 level="warning",
-                message=str(exc),
+                message=msg,
             )
-        except Exception as exc:  # noqa: BLE001
-            err = f"{platform_code}: {exc}"
-            errors.append(err)
-            write_run_log(
-                db,
-                task_id=task.id,
-                platform=platform_code,
-                level="error",
-                message=err,
-            )
-            logger.exception("platform search failed: %s", platform_code)
 
     task.last_checked_at = started
     if errors and new_items == 0 and len(errors) >= len(platforms):

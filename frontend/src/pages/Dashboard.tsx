@@ -23,7 +23,12 @@ export default function Dashboard() {
   return (
     <div>
       <h1 className="page-title">总览</h1>
-      <p className="page-desc">煤炉与骏合屋监控任务、今日发现与通知结果一览。</p>
+      <p className="page-desc">
+        监控与通知聚合已就绪；煤炉 / 骏合屋商品数据源尚未接入，任务不会发现真实平台商品。
+      </p>
+      <div className="error-box" style={{ background: "rgba(161, 92, 0, 0.08)", borderColor: "rgba(161, 92, 0, 0.3)", color: "var(--warn)" }}>
+        当前不能监控真实煤炉 / 骏合屋商品。请到「平台接入」查看可插拔数据源状态；不会使用演示数据冒充结果。
+      </div>
       {error && <div className="error-box">{error}</div>}
       {stats && (
         <div className="grid-stats">

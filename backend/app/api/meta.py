@@ -34,6 +34,16 @@ def health() -> dict:
     return {"ok": True, "service": "jp-monitor"}
 
 
+def _platform_status_label(status: str) -> str:
+    return {
+        "supported": "已接入",
+        "partial": "部分接入",
+        "unavailable": "当前不能监控",
+        "stub": "未接入",
+        "pending_confirmation": "待确认",
+    }.get(status, status)
+
+
 @router.get("/platforms", response_model=list[PlatformInfo])
 def platforms() -> list[PlatformInfo]:
     return [
@@ -46,6 +56,8 @@ def platforms() -> list[PlatformInfo]:
             capabilities=c.capabilities,
             limitations=c.limitations,
             config_notes=c.config_notes,
+            can_monitor=c.status in ("supported", "partial"),
+            status_label=_platform_status_label(c.status),
         )
         for c in list_capabilities()
     ]

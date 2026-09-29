@@ -42,6 +42,15 @@ class Settings(BaseSettings):
 
     static_dir: str = str(Path(__file__).resolve().parents[2] / "frontend" / "dist")
 
+    # Email alert data source (OAuth only — never store mailbox passwords)
+    email_oauth_provider: str = ""  # gmail | microsoft
+    email_oauth_client_id: str = ""
+    email_oauth_client_secret: str = ""
+    email_oauth_redirect_uri: str = "http://127.0.0.1:8000/api/oauth/email/callback"
+
+    # User-provided ingest token (empty = ingest endpoint disabled)
+    ingest_api_token: str = ""
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]

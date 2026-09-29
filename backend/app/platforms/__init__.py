@@ -10,14 +10,16 @@ from __future__ import annotations
 from typing import Dict
 
 from app.platforms.base import PlatformAdapter, PlatformCapability
-from app.platforms.mercari import MercariAdapter
-from app.platforms.surugaya import SurugayaAdapter
 
 # Product-facing platforms for this MVP scope
 MVP_PLATFORM_CODES = ("mercari", "surugaya")
 
 
 def build_registry() -> Dict[str, PlatformAdapter]:
+    # Lazy imports to avoid circular dependency with datasources
+    from app.platforms.mercari import MercariAdapter
+    from app.platforms.surugaya import SurugayaAdapter
+
     return {
         "mercari": MercariAdapter(),
         "surugaya": SurugayaAdapter(),

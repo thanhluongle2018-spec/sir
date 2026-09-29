@@ -12,42 +12,41 @@ from app.platforms.base import (
 
 class SurugayaAdapter:
     """
-    骏合屋（Suruga-ya / 駿河屋）独立适配器。
+    骏合屋（Suruga-ya）平台适配器：保留统一平台接口，商品数据改由可插拔 DataSource 提供。
 
-    接入核查结论：
-    - 公开 HTML 搜索在多数云 / 数据中心出口返回 403
-    - 无官方开放搜索 API
-    - 本项目不绕过 WAF / 访问控制，也不要求用户提供站点账号密码
-
-    因此本版本明确标记为「未接入」。保留 parse_item / make_external_id，
-    待出现允许且稳定的数据源后再实现 search()。
+    官方公开搜索 API：待确认；入荷邮件不是关键词全站监控。status=unavailable。
     """
 
     code = "surugaya"
 
     def capability(self) -> PlatformCapability:
+        from app.datasources import list_datasources_for_platform
+
+        sources = list_datasources_for_platform(self.code)
+        source_lines = [f"{s.id}: {s.status.value} — {s.summary}" for s in sources]
         return PlatformCapability(
             code=self.code,
             name="Suruga-ya",
             name_ja="駿河屋（骏合屋）",
             status="unavailable",
-            data_source="暂无允许稳定使用的公开数据源（公开 HTML 常被 403）",
+            data_source="可插拔数据源（官方 API 待确认 / 入荷邮件 / 用户提供）；当前不能关键词监控",
             capabilities=[],
             limitations=[
-                "未接入：公开搜索在多数自动化出口返回 403",
-                "不会绕过 WAF / 访问控制",
-                "不会使用演示数据冒充真实商品",
+                "当前不能监控真实骏合屋关键词上新：没有已启用的可用搜索数据源",
+                "不会绕过 403/WAF 或登录验证",
+                "不会使用演示数据冒充真实结果",
+                *source_lines,
             ],
             config_notes=(
-                "后续接入条件：官方开放 API，或在合规前提下可稳定访问的允许数据源；"
-                "届时在本文件实现 search() 并更新 status。"
+                "请查看 /api/datasources。"
+                "入荷お知らせ邮件仅覆盖入荷待ちリスト，不能替代关键词搜索。"
             ),
         )
 
     def make_external_id(self, raw: dict[str, Any]) -> str:
         if raw.get("product_id"):
             return str(raw["product_id"])
-        link = str(raw.get("link") or "")
+        link = str(raw.get("link") or raw.get("url") or "")
         return link.rstrip("/").split("/")[-1] if link else ""
 
     def parse_item(self, raw: dict[str, Any]) -> ProductItem:
@@ -61,17 +60,16 @@ class SurugayaAdapter:
             platform=self.code,
             external_id=external_id,
             title=str(raw.get("title") or ""),
-            url=str(raw.get("link") or ""),
+            url=str(raw.get("link") or raw.get("url") or ""),
             price=price_f,
             currency="JPY",
-            image_url=raw.get("image"),
+            image_url=raw.get("image") or raw.get("image_url"),
             condition=raw.get("condition"),
             raw=raw,
         )
 
     async def search(self, query: SearchQuery) -> SearchResult:
         raise NotImplementedError(
-            "骏合屋（駿河屋）尚未接入：暂无允许稳定使用的公开数据源"
-            "（公开搜索常返回 403）。不会伪造抓取结果。"
-            f"关键词={query.keywords}"
+            "骏合屋平台适配器本身不直接抓取。请通过数据源获取商品。"
+            "当前无 available 的关键词搜索数据源，不能监控。"
         )

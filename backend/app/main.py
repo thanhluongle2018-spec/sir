@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api import channels, items, meta, tasks
+from app.api import channels, datasources, items, meta, tasks
 from app.config import get_settings
 from app.db import init_db
 from app.platforms.http_util import close_http_client
@@ -50,6 +50,7 @@ def create_app() -> FastAPI:
     app.include_router(items.router)
     app.include_router(channels.router)
     app.include_router(meta.router)
+    app.include_router(datasources.router)
 
     static_dir = Path(settings.static_dir)
     if static_dir.exists():

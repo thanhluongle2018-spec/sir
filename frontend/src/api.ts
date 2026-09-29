@@ -68,6 +68,23 @@ export interface PlatformInfo {
   capabilities: string[];
   limitations: string[];
   config_notes: string;
+  can_monitor?: boolean;
+  status_label?: string;
+}
+
+export interface DataSourceInfo {
+  id: string;
+  platform: string;
+  kind: string;
+  name: string;
+  name_zh: string;
+  status: string;
+  summary: string;
+  research_notes: string[];
+  requirements: string[];
+  limitations: string[];
+  references: string[];
+  status_label?: string;
 }
 
 export interface DashboardStats {
@@ -114,6 +131,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   health: () => request<{ ok: boolean }>("/api/health"),
   platforms: () => request<PlatformInfo[]>("/api/platforms"),
+  datasources: () => request<DataSourceInfo[]>("/api/datasources"),
   dashboard: () => request<DashboardStats>("/api/stats/dashboard"),
   charts: () => request<StatsCharts>("/api/stats/charts?days=14"),
   tasks: {
