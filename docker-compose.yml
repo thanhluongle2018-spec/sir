@@ -1,0 +1,17 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: sqlite:////data/monitor.db
+      SCHEDULER_ENABLED: "true"
+      ENABLE_DEMO_PLATFORM: "true"
+    volumes:
+      - monitor-data:/data
+    restart: unless-stopped
+
+volumes:
+  monitor-data:
