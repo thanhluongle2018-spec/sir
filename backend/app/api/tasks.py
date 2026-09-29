@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Optional
-
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.models import MatchMode, MonitorTask, TaskStatus
+from app.models import MonitorTask, TaskStatus
 from app.schemas import TaskCreate, TaskOut, TaskUpdate
 from app.services.monitor import run_task_once, utcnow
 
