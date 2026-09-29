@@ -5,7 +5,37 @@ from typing import Any, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
-from app.models import ChannelType, MatchMode, NotificationStatus, PlatformCode, TaskStatus
+from app.models import (
+    MVP_PLATFORM_CODES,
+    ChannelType,
+    MatchMode,
+    NotificationStatus,
+    PlatformCode,
+    TaskStatus,
+)
+
+
+def _normalize_keywords(v: Any) -> list[str]:
+    if v is None:
+        return []
+    if isinstance(v, str):
+        parts = [p.strip() for p in v.replace("，", ",").split(",")]
+        return [p for p in parts if p]
+    return [str(x).strip() for x in v if str(x).strip()]
+
+
+def _validate_mvp_platforms(v: list[Any]) -> list[PlatformCode]:
+    if not v:
+        raise ValueError("请至少选择一个平台：煤炉（mercari）或骏合屋（surugaya）")
+    out: list[PlatformCode] = []
+    for item in v:
+        code = PlatformCode(item.value if isinstance(item, PlatformCode) else item)
+        if code not in MVP_PLATFORM_CODES:
+            raise ValueError(
+                f"本版本仅支持煤炉与骏合屋，不支持平台: {code.value}"
+            )
+        out.append(code)
+    return out
 
 
 class TaskCreate(BaseModel):
@@ -29,12 +59,12 @@ class TaskCreate(BaseModel):
     @field_validator("keywords", "exclude_keywords", mode="before")
     @classmethod
     def normalize_keywords(cls, v: Any) -> list[str]:
-        if v is None:
-            return []
-        if isinstance(v, str):
-            parts = [p.strip() for p in v.replace("，", ",").split(",")]
-            return [p for p in parts if p]
-        return [str(x).strip() for x in v if str(x).strip()]
+        return _normalize_keywords(v)
+
+    @field_validator("platforms")
+    @classmethod
+    def validate_platforms(cls, v: list[PlatformCode]) -> list[PlatformCode]:
+        return _validate_mvp_platforms(v)
 
 
 class TaskUpdate(BaseModel):
@@ -54,6 +84,20 @@ class TaskUpdate(BaseModel):
     interval_seconds: Optional[int] = Field(default=None, ge=30, le=86400)
     status: Optional[TaskStatus] = None
     channel_ids: Optional[list[int]] = None
+
+    @field_validator("keywords", "exclude_keywords", mode="before")
+    @classmethod
+    def normalize_keywords(cls, v: Any) -> list[str] | None:
+        if v is None:
+            return None
+        return _normalize_keywords(v)
+
+    @field_validator("platforms")
+    @classmethod
+    def validate_platforms(cls, v: list[PlatformCode] | None) -> list[PlatformCode] | None:
+        if v is None:
+            return None
+        return _validate_mvp_platforms(v)
 
 
 class TaskOut(BaseModel):

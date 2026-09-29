@@ -1,6 +1,8 @@
-# SIR · 日本二手商品多平台上新监控
+# SIR · 煤炉 / 骏合屋上新监控
 
-关键词监控日本二手平台上新，并通过 Telegram / Bark / 企业微信 / 钉钉 / 飞书 / Email / Webhook / 微信推送等渠道提醒。  
+针对**煤炉（Mercari）**与**骏合屋（Suruga-ya）**的关键词上新监控与通知工具。  
+本版本**不包含**雅虎日拍、PayPayフリマ、ラクマ、演示平台等其他站点入口。
+
 **第一阶段只做提醒与商品跳转，不包含自动收藏、自动下单。**
 
 ## 技术选型
@@ -13,35 +15,37 @@
 | 前端 | Vite + React + TypeScript | 任务 / 商品 / 通知 / 统计面板 |
 | 部署 | Docker Compose | 一键启动应用与数据卷 |
 
-项目初始为空仓库，因此采用上述简洁、易部署的栈。
-
 ## 功能概览（MVP）
 
-- 监控任务：创建 / 编辑 / 暂停 / 删除；多关键词；包含 / 排除；任意或全部命中；价格 / 品牌 / 型号 / 分类 / 卖家 / 状态筛选；可配置检查间隔
-- 自动监控：服务端调度、重启恢复、失败退避、并发与频率限制、商品去重、记录首次发现时间与来源平台
-- 商品库：标题 / 价格 / 图片 / 链接 / 卖家 / 发布时间 / 发现时间 / 匹配关键词；搜索与筛选；已读状态
-- 通知：统一接口 + 多渠道适配器；凭证加密存储；测试发送；失败重试与发送记录（按渠道+商品+任务去重）
-- 面板：任务数、今日发现、平台分布、通知成功/失败、按天/平台/关键词统计、运行日志
+- 监控任务：创建 / 编辑 / 暂停 / 删除；多关键词；包含 / 排除；任意或全部命中；价格 / 品牌 / 型号等筛选；可配置检查间隔
+- 自动监控：服务端调度、重启恢复、失败退避、并发与频率限制、商品去重
+- 商品库：标题 / 价格 / 图片 / 链接 / 卖家 / 发现时间 / 匹配关键词；搜索与筛选；已读状态
+- 通知：Telegram / Bark / 企业微信 / 钉钉 / 飞书 / Email / Webhook / 微信推送；凭证加密；测试发送与失败记录
+- 面板：任务数、今日发现、平台分布、通知成功/失败、按天/关键词统计、运行日志
 
-## 平台接入状态
+## 平台接入状态（本版本仅此两个）
 
-| 平台 | 代码 | 状态 | 数据来源 | 说明 |
-|---|---|---|---|---|
-| 雅虎日拍 | `yahoo_auctions` | **partial** | 公开 HTML 搜索页 | 已实现解析；页面改版需维护；请控制频率 |
-| 演示平台 | `demo` | **supported** | 本地合成数据 | 默认开启，用于离线联调全流程 |
-| 煤炉 Mercari | `mercari` | **stub** | 非官方 API 现 401；公开页受 Cloudflare 保护 | 占位 + 解析辅助；不绕过访问控制 |
-| 骏合屋 駿河屋 | `surugaya` | **stub** | 公开 HTML 在多数云出口 403 | 占位适配器 |
-| 闪电市场 PayPayフリマ | `paypay_fleamarket` | **stub** | 无稳定公开官方搜索 API | 占位适配器 + 接入说明 |
-| 乐天二手 ラクマ | `rakuma` | **stub** | 无稳定公开官方搜索 API | 占位适配器 |
-| 雅虎闲置 | `yahoo_fleamarket` | **stub** | 业务已并入 PayPayフリマ | 历史兼容占位 |
+| 平台 | 代码 | 状态 | 说明 |
+|---|---|---|---|
+| 煤炉 Mercari | `mercari` | **未接入** | 非官方 search API 现返回 401；公开搜索页受 Cloudflare 保护。无允许稳定使用的公开数据源。 |
+| 骏合屋 駿河屋 | `surugaya` | **未接入** | 公开 HTML 搜索在多数云出口返回 403；无官方开放搜索 API。 |
 
-**不会实现**：绕过登录、验证码、付费墙或其他访问控制；不会要求用户提供平台账号密码。
+**不会实现**：绕过登录、验证码、Cloudflare、付费墙或其他访问控制；不会用演示数据冒充真实商品；不要求用户提供平台账号密码。
 
-### 如何维护 / 替换某个平台适配器
+### 后续接入所需条件
 
-1. 实现 `backend/app/platforms/base.py` 中的统一接口：`search` / `parse_item` / `make_external_id` / `capability`
-2. 在 `backend/app/platforms/__init__.py` 注册
-3. 保持调度、通知、前端不感知具体解析细节
+1. **煤炉**：官方开放搜索 API，或平台明确允许的合作数据源 → 在 `backend/app/platforms/mercari.py` 实现 `search()`，复用已有 `parse_item` / `make_external_id`，将 `status` 改为 `supported` / `partial`。
+2. **骏合屋**：官方开放 API，或合规前提下可稳定访问的允许数据源 → 在 `backend/app/platforms/surugaya.py` 同样处理。
+
+适配器与调度、通知、前端分离，可单独替换。
+
+### 旧数据兼容
+
+若数据库中仍有早期版本写入的其他平台商品/任务（如 `demo`、`yahoo_auctions`）：
+
+- `PlatformCode` 枚举保留历史值，读取旧记录不会崩溃
+- 调度遇到非本版本平台会**跳过并写警告日志**，不会中断整个任务循环
+- 新建/编辑任务只允许选择 `mercari` / `surugaya`
 
 ## 快速启动
 
@@ -58,7 +62,6 @@ docker compose up --build -d
 ### 方式 B：本地开发
 
 ```bash
-# 后端
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r backend/requirements.txt
@@ -67,24 +70,13 @@ mkdir -p data
 cd backend && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 # 另开终端：前端
-cd frontend && npm install && npm run dev
+cd frontend && npm install && npm run build
+# 或 npm run dev（开发代理 /api → :8000）
 ```
-
-- API / 已构建前端：<http://localhost:8000>
-- 前端开发：<http://localhost:5173>（已代理 `/api`）
-
-### 首次验证（不依赖外网）
-
-1. 打开「通知渠道」可先跳过，或配置 Telegram 等
-2. 「监控任务」新建任务，关键词任意（如 `Switch`），平台勾选 **演示平台 (demo)**
-3. 点击「立即检查」或等待调度
-4. 在「商品」中应看到合成商品；总览与日志同步更新
 
 ## 环境变量
 
-见 [`.env.example`](.env.example)。敏感通知凭证通过面板写入数据库，并使用 Fernet 加密；**不要把密钥硬编码进代码**。
-
-生成 Fernet Key：
+见 [`.env.example`](.env.example)。通知凭证通过面板写入数据库并用 Fernet 加密，**不要硬编码密钥**。
 
 ```bash
 python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
@@ -96,8 +88,8 @@ python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().d
 backend/app/
   api/            # REST API
   models/         # SQLAlchemy 模型
-  platforms/      # 各平台适配器（独立维护）
-  notifications/  # 各通知渠道适配器
+  platforms/      # mercari.py / surugaya.py（独立适配器）
+  notifications/  # 通知渠道适配器
   scheduler/      # 后台定时调度
   services/       # 监控去重、加密等
 frontend/         # React 面板
@@ -105,27 +97,17 @@ docker-compose.yml
 Dockerfile
 ```
 
-## API 摘要
-
-- `GET /api/health`
-- `GET/POST /api/tasks`，`PATCH/DELETE /api/tasks/{id}`，`POST .../pause|resume|run`
-- `GET /api/items`，`POST /api/items/{id}/read`
-- `GET/POST /api/channels`，`POST /api/channels/{id}/test`
-- `GET /api/platforms`，`GET /api/stats/dashboard`，`GET /api/stats/charts`
-- `GET /api/logs/runs`，`GET /api/logs/notifications`
-
 ## 未来功能（未实现）
 
-- **自动收藏 / 自动下单**：不属于 MVP。若将来实现，必须先确认目标平台允许，并由用户明确开启；架构上平台适配器可额外扩展动作接口，但当前刻意不提供。
-- PayPayフリマ / ラクマ 在获得允许的数据源后的正式接入
-- 多用户认证与权限
-- PostgreSQL 生产配置与 Alembic 精细迁移
+- **自动收藏 / 自动下单**：不属于 MVP；若将来实现须先确认平台允许并由用户明确开启
+- 煤炉 / 骏合屋在获得允许数据源后的正式抓取接入
+- 多用户认证；PostgreSQL 生产配置与 Alembic 精细迁移
 
-## 合规与频率建议
+## 合规建议
 
-- 仅用于个人监控提醒；请遵守各平台服务条款与 robots 约定
-- 建议检查间隔 ≥ 60 秒（骏合屋等 HTML 源建议 ≥ 120 秒）
-- 本工具出站请求使用可识别的 User-Agent，不伪装成浏览器以绕过限制
+- 仅用于个人监控提醒；遵守各平台服务条款
+- 接入后请控制检查间隔（建议 ≥ 60–120 秒）
+- 出站请求使用可识别 User-Agent，不伪装浏览器以绕过限制
 
 ## 许可证
 

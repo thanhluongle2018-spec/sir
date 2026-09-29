@@ -35,13 +35,23 @@ class MatchMode(str, enum.Enum):
 
 
 class PlatformCode(str, enum.Enum):
-    mercari = "mercari"
-    paypay_fleamarket = "paypay_fleamarket"  # 闪电市场 / PayPayフリマ
-    rakuma = "rakuma"  # 乐天二手 / ラクマ
-    yahoo_fleamarket = "yahoo_fleamarket"  # 雅虎闲置（已并入 PayPayフリマ）
-    yahoo_auctions = "yahoo_auctions"  # 雅虎日拍
-    surugaya = "surugaya"  # 骏合屋 / 駿河屋
-    demo = "demo"  # 离线演示平台
+    """MVP 目标平台为 mercari / surugaya。
+
+    其余枚举值仅用于兼容旧数据库中的商品与任务记录，不再出现在产品入口。
+    """
+
+    mercari = "mercari"  # 煤炉
+    surugaya = "surugaya"  # 骏合屋
+    # --- legacy (DB compatibility only) ---
+    paypay_fleamarket = "paypay_fleamarket"
+    rakuma = "rakuma"
+    yahoo_fleamarket = "yahoo_fleamarket"
+    yahoo_auctions = "yahoo_auctions"
+    demo = "demo"
+
+
+# Platforms exposed / selectable in this MVP
+MVP_PLATFORM_CODES = frozenset({PlatformCode.mercari, PlatformCode.surugaya})
 
 
 class ChannelType(str, enum.Enum):

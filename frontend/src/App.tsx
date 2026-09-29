@@ -13,7 +13,7 @@ export default function App() {
         <h1 className="brand">
           SIR <span>Monitor</span>
         </h1>
-        <div className="brand-sub">日本二手多平台上新监控</div>
+        <div className="brand-sub">煤炉 · 骏合屋上新监控</div>
         <nav className="nav">
           <NavLink to="/" end>
             总览

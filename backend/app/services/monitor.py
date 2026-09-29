@@ -23,7 +23,7 @@ from app.models import (
 )
 from app.notifications import send_notification
 from app.notifications.base import NotifyPayload
-from app.platforms import get_adapter
+from app.platforms import get_adapter, is_mvp_platform
 from app.platforms.base import ProductItem, SearchQuery
 from app.services.crypto import decrypt_credentials
 
@@ -101,17 +101,37 @@ async def run_task_once(db: Session, task: MonitorTask) -> dict:
 
     for platform in platforms:
         platform_code = platform if isinstance(platform, str) else str(platform)
+        # Legacy platforms kept in DB for compatibility; skip without crashing the task loop
+        if not is_mvp_platform(platform_code):
+            msg = (
+                f"平台 {platform_code} 已不在本版本范围内（仅煤炉/骏合屋），已跳过。"
+                "请编辑任务并改选目标平台。"
+            )
+            errors.append(msg)
+            write_run_log(
+                db,
+                task_id=task.id,
+                platform=platform_code,
+                level="warning",
+                message=msg,
+            )
+            continue
         try:
             adapter = get_adapter(platform_code)
             cap = adapter.capability()
-            if cap.status == "stub":
-                msg = f"平台 {platform_code} 为占位实现，已跳过搜索"
+            if cap.status in ("stub", "unavailable"):
+                msg = (
+                    f"平台 {cap.name_ja}（{platform_code}）尚未接入，已跳过搜索。"
+                    f"原因：{cap.data_source}"
+                )
+                errors.append(msg)
                 write_run_log(
                     db,
                     task_id=task.id,
                     platform=platform_code,
                     level="warning",
                     message=msg,
+                    detail={"status": cap.status, "limitations": cap.limitations},
                 )
                 continue
 

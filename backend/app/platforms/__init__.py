@@ -1,32 +1,27 @@
 from __future__ import annotations
 
+"""
+本版本目标平台：煤炉（Mercari）、骏合屋（Suruga-ya）。
+
+历史平台代码（demo / yahoo_auctions 等）仅保留在 PlatformCode 枚举中，
+以便读取旧数据库记录；产品注册表不再暴露它们。
+"""
+
 from typing import Dict
 
-from app.config import get_settings
 from app.platforms.base import PlatformAdapter, PlatformCapability
-from app.platforms.demo import DemoAdapter
 from app.platforms.mercari import MercariAdapter
-from app.platforms.stubs import (
-    paypay_fleamarket_adapter,
-    rakuma_adapter,
-    yahoo_fleamarket_adapter,
-)
 from app.platforms.surugaya import SurugayaAdapter
-from app.platforms.yahoo_auctions import YahooAuctionsAdapter
+
+# Product-facing platforms for this MVP scope
+MVP_PLATFORM_CODES = ("mercari", "surugaya")
 
 
 def build_registry() -> Dict[str, PlatformAdapter]:
-    registry: Dict[str, PlatformAdapter] = {
+    return {
         "mercari": MercariAdapter(),
-        "yahoo_auctions": YahooAuctionsAdapter(),
         "surugaya": SurugayaAdapter(),
-        "paypay_fleamarket": paypay_fleamarket_adapter(),
-        "rakuma": rakuma_adapter(),
-        "yahoo_fleamarket": yahoo_fleamarket_adapter(),
     }
-    if get_settings().enable_demo_platform:
-        registry["demo"] = DemoAdapter()
-    return registry
 
 
 _REGISTRY: Dict[str, PlatformAdapter] | None = None
@@ -42,9 +37,13 @@ def get_registry() -> Dict[str, PlatformAdapter]:
 def get_adapter(code: str) -> PlatformAdapter:
     registry = get_registry()
     if code not in registry:
-        raise KeyError(f"未知平台: {code}")
+        raise KeyError(f"本版本未提供平台入口: {code}（仅支持煤炉/骏合屋）")
     return registry[code]
 
 
 def list_capabilities() -> list[PlatformCapability]:
-    return [a.capability() for a in get_registry().values()]
+    return [get_registry()[code].capability() for code in MVP_PLATFORM_CODES]
+
+
+def is_mvp_platform(code: str) -> bool:
+    return code in MVP_PLATFORM_CODES

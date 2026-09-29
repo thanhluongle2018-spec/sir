@@ -52,7 +52,7 @@ export default function Channels() {
     <div>
       <h1 className="page-title">通知渠道</h1>
       <p className="page-desc">
-        统一通知接口。凭证加密保存，不在代码中硬编码密钥。支持测试发送与失败记录。
+        煤炉 / 骏合屋监控的统一通知接口。凭证加密保存，支持测试发送与失败记录。
       </p>
       {error && <div className="error-box">{error}</div>}
       {msg && <div className="panel" style={{ color: "var(--ok)" }}>{msg}</div>}

@@ -13,7 +13,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    app_name: str = "日本二手商品监控"
+    app_name: str = "煤炉骏合屋商品监控"
     app_env: str = "development"
     secret_key: str = "change-me-in-production"
     # Fernet key used to encrypt channel credentials at rest (url-safe base64 32-byte key)
@@ -39,9 +39,6 @@ class Settings(BaseSettings):
     http_user_agent: str = (
         "JP-Monitor/1.0 (+https://github.com/thanhluongle2018-spec/sir; personal monitoring)"
     )
-
-    # Demo platform: generates synthetic items so the pipeline can be tested offline
-    enable_demo_platform: bool = True
 
     static_dir: str = str(Path(__file__).resolve().parents[2] / "frontend" / "dist")
 

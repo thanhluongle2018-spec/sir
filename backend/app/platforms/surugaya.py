@@ -12,33 +12,35 @@ from app.platforms.base import (
 
 class SurugayaAdapter:
     """
-    Suruga-ya (骏合屋 / 駿河屋) adapter.
+    骏合屋（Suruga-ya / 駿河屋）独立适配器。
 
-    Public HTML search frequently returns 403 from datacenter / cloud egress IPs
-    and may require residential access. This project will not bypass that protection.
-    Parsing helpers are retained for future enablement when an allowed source exists
-    or when the site is reachable without circumventing controls.
+    接入核查结论：
+    - 公开 HTML 搜索在多数云 / 数据中心出口返回 403
+    - 无官方开放搜索 API
+    - 本项目不绕过 WAF / 访问控制，也不要求用户提供站点账号密码
+
+    因此本版本明确标记为「未接入」。保留 parse_item / make_external_id，
+    待出现允许且稳定的数据源后再实现 search()。
     """
 
     code = "surugaya"
-    SEARCH_URL = "https://www.suruga-ya.jp/search"
 
     def capability(self) -> PlatformCapability:
         return PlatformCapability(
             code=self.code,
             name="Suruga-ya",
             name_ja="駿河屋（骏合屋）",
-            status="stub",
-            data_source="公开 HTML 搜索在多数云出口返回 403；无官方开放搜索 API",
+            status="unavailable",
+            data_source="暂无允许稳定使用的公开数据源（公开 HTML 常被 403）",
             capabilities=[],
             limitations=[
-                "未实现稳定接入：站点对自动化出口常返回 403",
+                "未接入：公开搜索在多数自动化出口返回 403",
                 "不会绕过 WAF / 访问控制",
-                "页面结构变更时需单独维护解析器",
+                "不会使用演示数据冒充真实商品",
             ],
             config_notes=(
-                "若你在可正常访问的网络环境中维护本项目，可参考历史 HTML 解析思路恢复 search()，"
-                "并更新 capability.status。请遵守 robots 与服务条款，控制频率。"
+                "后续接入条件：官方开放 API，或在合规前提下可稳定访问的允许数据源；"
+                "届时在本文件实现 search() 并更新 status。"
             ),
         )
 
@@ -69,7 +71,7 @@ class SurugayaAdapter:
 
     async def search(self, query: SearchQuery) -> SearchResult:
         raise NotImplementedError(
-            "骏合屋（駿河屋）当前无法从本部署环境通过允许方式稳定访问（公开搜索常返回 403）。"
-            "不会绕过访问控制。请使用 demo / yahoo_auctions 验证流程。"
+            "骏合屋（駿河屋）尚未接入：暂无允许稳定使用的公开数据源"
+            "（公开搜索常返回 403）。不会伪造抓取结果。"
             f"关键词={query.keywords}"
         )

@@ -13,7 +13,7 @@ const emptyForm = {
   keywords: "",
   exclude_keywords: "",
   match_mode: "any",
-  platforms: ["demo"] as string[],
+  platforms: ["mercari"] as string[],
   min_price: "",
   max_price: "",
   brand: "",
@@ -128,7 +128,7 @@ export default function Tasks() {
   return (
     <div>
       <h1 className="page-title">监控任务</h1>
-      <p className="page-desc">创建        创建、编辑、暂停关键词监控。服务端调度运行，关闭浏览器不影响检查。
+      <p className="page-desc">针对煤炉与骏合屋创建关键词监控。服务端调度运行；平台未接入时会明确跳过，不会伪造商品。
       </p>
       {error && <div className="error-box">{error}</div>}
       {msg && <div className="panel" style={{ color: "var(--ok)" }}>{msg}</div>}
@@ -241,7 +241,7 @@ export default function Tasks() {
             </label>
             <div className="full">
               <div className="muted" style={{ marginBottom: 8 }}>
-                平台
+                目标平台（本版本仅煤炉 / 骏合屋）
               </div>
               <div className="checks">
                 {platforms.map((p) => (
@@ -250,11 +250,24 @@ export default function Tasks() {
                       type="checkbox"
                       checked={form.platforms.includes(p.code)}
                       onChange={() => togglePlatform(p.code)}
-                      disabled={p.status === "stub"}
                     />
                     {p.name_ja}
-                    <span className={`badge ${p.status === "supported" ? "ok" : p.status === "partial" ? "warn" : "err"}`}>
-                      {p.status}
+                    <span
+                      className={`badge ${
+                        p.status === "supported"
+                          ? "ok"
+                          : p.status === "partial"
+                            ? "warn"
+                            : "err"
+                      }`}
+                    >
+                      {p.status === "unavailable" || p.status === "stub"
+                        ? "未接入"
+                        : p.status === "partial"
+                          ? "部分接入"
+                          : p.status === "supported"
+                            ? "已接入"
+                            : p.status}
                     </span>
                   </label>
                 ))}

@@ -23,7 +23,7 @@ export default function Dashboard() {
   return (
     <div>
       <h1 className="page-title">总览</h1>
-      <p className="page-desc">监控任务、今日发现与通知结果一览。</p>
+      <p className="page-desc">煤炉与骏合屋监控任务、今日发现与通知结果一览。</p>
       {error && <div className="error-box">{error}</div>}
       {stats && (
         <div className="grid-stats">

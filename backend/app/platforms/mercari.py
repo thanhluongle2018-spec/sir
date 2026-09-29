@@ -13,41 +13,36 @@ from app.platforms.base import (
 
 class MercariAdapter:
     """
-    Mercari (煤炉 / メルカリ) adapter.
+    煤炉（Mercari / メルカリ）独立适配器。
 
-    Current access status (2026-09):
-    - Unofficial `api.mercari.jp/v2/entities:search` returns HTTP 401 without client auth.
-    - Public HTML search is behind Cloudflare / edge protection.
-    - This project does NOT bypass login, captcha, or access controls.
+    接入核查结论：
+    - 非官方 search API（api.mercari.jp）当前返回 401，需客户端鉴权
+    - 公开搜索页受 Cloudflare 等访问保护
+    - 本项目不绕过登录、验证码、Cloudflare 或其他访问控制，也不要求用户提供煤炉账号密码
 
-    Therefore the adapter is shipped as a **stub** with parsing helpers retained so
-    maintainers can re-enable search() when an allowed official/partner API exists.
+    因此本版本明确标记为「未接入」。保留 parse_item / make_external_id，
+    待出现官方开放 API 或允许的合作数据源后再实现 search()。
     """
 
     code = "mercari"
-    # Historical endpoint kept for documentation / future wiring only.
-    SEARCH_URL = "https://api.mercari.jp/v2/entities:search"
 
     def capability(self) -> PlatformCapability:
         return PlatformCapability(
             code=self.code,
             name="Mercari",
             name_ja="メルカリ（煤炉）",
-            status="stub",
-            data_source=(
-                "暂无允许稳定使用的公开数据源："
-                "非官方 search API 现返回 401；公开搜索页受 Cloudflare 保护"
-            ),
+            status="unavailable",
+            data_source="暂无允许稳定使用的公开数据源",
             capabilities=[],
             limitations=[
-                "未实现稳定搜索：缺少允许使用的官方/合作接口",
+                "未接入：非官方 API 返回 401；公开网页受 Cloudflare 保护",
                 "不会绕过登录、验证码、Cloudflare 或其他访问控制",
-                "不要求用户提供煤炉账号密码",
+                "不会使用演示数据冒充真实商品",
             ],
             config_notes=(
-                "接入方法：若获得官方开放 API 或允许的合作数据源，在本文件实现 search()，"
-                "复用 parse_item()/make_external_id()，并将 capability.status 改为 supported/partial。"
-                "也可通过环境变量预留 MERCARI_API_BASE（未来版本）。"
+                "后续接入条件：官方开放搜索 API，或平台明确允许的合作数据源；"
+                "届时在本文件实现 search()，复用 parse_item()/make_external_id()，"
+                "并将 status 更新为 supported/partial。"
             ),
         )
 
@@ -100,8 +95,8 @@ class MercariAdapter:
 
     async def search(self, query: SearchQuery) -> SearchResult:
         raise NotImplementedError(
-            "煤炉（Mercari）当前无法通过允许的公开数据源稳定接入："
-            "非官方 API 返回 401，公开网页受访问保护。"
-            "请使用演示平台(demo)验证流程，或待官方开放接口后更新本适配器。"
+            "煤炉（Mercari）尚未接入：暂无允许稳定使用的公开数据源"
+            "（非官方 API 401 / 公开页受访问保护）。"
+            "不会伪造抓取结果。后续需官方或允许的合作接口后再启用。"
             f"关键词={query.keywords}"
         )

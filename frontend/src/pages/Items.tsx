@@ -30,7 +30,7 @@ export default function ItemsPage() {
   return (
     <div>
       <h1 className="page-title">商品</h1>
-      <p className="page-desc">已发现商品列表，支持搜索、平台与价格筛选，以及已读标记。</p>
+      <p className="page-desc">煤炉 / 骏合屋已发现商品列表（接入后才会出现真实商品）。支持搜索、平台与价格筛选。</p>
       {error && <div className="error-box">{error}</div>}
 
       <div className="panel">
